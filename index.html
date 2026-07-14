@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Km ⇄ Mile Converter</title>
+
+<!-- Google Fonts: a condensed display face for the "road sign" numbers, 
+     and a clean system sans for regular text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #FAF7F1;
+    --ink: #1E2A38;
+    --ink-soft: #6B7280;
+    --sign-green: #1B4B3A;
+    --sign-green-dark: #123529;
+    --signal-yellow: #E8B93E;
+    --border: #D8D2C4;
+    --post-light: #cdd3d8;
+    --post-dark: #7d858d;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #eef2f0;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* =========================================================
+     THE SCENE: sky-blue background that houses everything,
+     with a landscape (hills + trees) band pinned to its bottom
+     edge — so the whole app reads as "a sign beside the road."
+     ========================================================= */
+  .scene {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #6fb8ec 0%, #9fd3f0 45%, #c9e8f6 68%, #dff2f8 78%);
+    padding: 30px 22px 0;
+    box-shadow: 0 10px 30px rgba(20, 40, 60, 0.18);
+  }
+
+  /* a couple of soft clouds for atmosphere, pure CSS */
+  .cloud {
+    position: absolute;
+    background: #ffffff;
+    border-radius: 50px;
+    opacity: 0.85;
+    filter: blur(0.5px);
+  }
+  .cloud::before, .cloud::after {
+    content: "";
+    position: absolute;
+    background: #ffffff;
+    border-radius: 50%;
+  }
+  .cloud-a { width: 70px; height: 22px; top: 34px; left: 24px; }
+  .cloud-a::before { width: 34px; height: 34px; top: -16px; left: 8px; }
+  .cloud-a::after { width: 26px; height: 26px; top: -10px; left: 34px; }
+  .cloud-b { width: 54px; height: 18px; top: 66px; right: 30px; }
+  .cloud-b::before { width: 26px; height: 26px; top: -12px; left: 6px; }
+  .cloud-b::after { width: 20px; height: 20px; top: -8px; left: 26px; }
+
+  /* content sits above the clouds/landscape via z-index */
+  .content {
+    position: relative;
+    z-index: 2;
+    padding-bottom: 150px; /* reserves room for posts + landscape below */
+  }
+
+  /* ---- Intro / instructions ---- */
+  .intro {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .intro h1 {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-size: 27px;
+    margin: 0 0 8px;
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(10, 30, 50, 0.25);
+  }
+
+  .intro p {
+    margin: 0 auto;
+    max-width: 360px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: #eaf6ff;
+    text-shadow: 0 1px 4px rgba(10, 30, 50, 0.2);
+  }
+
+  /* ---- Card (holds the actual controls) ---- */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: 0 6px 18px rgba(15, 35, 55, 0.18);
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+  .field:last-child { margin-bottom: 0; }
+
+  input[type="number"] {
+    width: 100%;
+    font-family: "Oswald", sans-serif;
+    font-size: 26px;
+    padding: 12px 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--sign-green);
+  }
+
+  /* ---- Direction toggle (styled like two road-sign buttons) ---- */
+  .direction-group {
+    display: flex;
+    gap: 10px;
+  }
+
+  .direction-option {
+    flex: 1;
+    position: relative;
+  }
+
+  .direction-option input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .direction-option .btn {
+    display: block;
+    text-align: center;
+    padding: 12px 8px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--paper);
+    transition: all 0.15s ease;
+    pointer-events: none;
+  }
+
+  .direction-option input:checked + .btn {
+    border-color: var(--sign-green);
+    background: var(--sign-green);
+    color: #fff;
+  }
+
+  .direction-option input:focus-visible + .btn {
+    outline: 3px solid var(--signal-yellow);
+    outline-offset: 2px;
+  }
+
+  /* =========================================================
+     THE SIGN: the result panel, now standing on two posts
+     like a real roadside distance sign.
+     ========================================================= */
+  .sign-wrap {
+    position: relative;
+    margin: 30px auto 0;
+    max-width: 320px;
+  }
+
+  /* the posts: two metal legs behind the sign, planted in the landscape */
+  .sign-post {
+    position: absolute;
+    top: 90%;
+    width: 12px;
+    height: 74px;
+    background: linear-gradient(90deg, var(--post-dark) 0%, var(--post-light) 45%, var(--post-dark) 100%);
+    border-radius: 2px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    z-index: 1;
+  }
+  .sign-post.left { left: 16%; }
+  .sign-post.right { right: 16%; }
+
+  .result {
+    position: relative;
+    z-index: 2;
+    background: var(--sign-green);
+    background-image: linear-gradient(180deg, var(--sign-green) 0%, var(--sign-green-dark) 100%);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 3px solid #fff;
+    outline: 2px solid var(--sign-green-dark);
+    box-shadow: 0 8px 20px rgba(10, 25, 20, 0.35);
+  }
+
+  .result .label {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 4px;
+  }
+
+  .result .value {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size: 42px;
+    color: #fff;
+    line-height: 1.1;
+    word-break: break-word;
+  }
+
+  .result .unit {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--signal-yellow);
+    margin-left: 6px;
+  }
+
+  .hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: #eaf6ff;
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(10, 30, 50, 0.25);
+  }
+
+  /* ---- Landscape band: hills + trees along the bottom of the scene ---- */
+  .landscape {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 150px;
+    z-index: 1;
+    display: block;
+  }
+
+  footer {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+
+  @media (max-width: 400px) {
+    .intro h1 { font-size: 23px; }
+    .result .value { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="app">
+
+    <div class="scene">
+
+      <div class="cloud cloud-a"></div>
+      <div class="cloud cloud-b"></div>
+
+      <div class="content">
+
+        <!-- Clear, plain-language intro so a first-time visitor knows exactly
+             what this page is and what to do -->
+        <div class="intro">
+          <h1>Kilometer ⇄ Mile Converter</h1>
+          <p>
+            Enter a number below, choose which direction to convert,
+            and the converted distance appears instantly on the sign.
+          </p>
+        </div>
+
+        <div class="card">
+
+          <div class="field">
+            <label for="inputValue">1. Enter a number</label>
+            <input
+              type="number"
+              id="inputValue"
+              placeholder="e.g. 10"
+              inputmode="decimal"
+              step="any"
+            />
+          </div>
+
+          <div class="field">
+            <label>2. Choose conversion direction</label>
+            <div class="direction-group" role="radiogroup" aria-label="Conversion direction">
+              <div class="direction-option">
+                <input type="radio" name="direction" id="kmToMi" value="kmToMi" checked>
+                <span class="btn" id="kmToMiLabel">Km → Miles</span>
+              </div>
+              <div class="direction-option">
+                <input type="radio" name="direction" id="miToKm" value="miToKm">
+                <span class="btn" id="miToKmLabel">Miles → Km</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- The sign: result panel standing on two posts -->
+        <div class="sign-wrap">
+          <div class="sign-post left"></div>
+          <div class="sign-post right"></div>
+          <div class="result" aria-live="polite">
+            <div class="label" id="resultLabel">Result</div>
+            <div class="value">
+              <span id="resultValue">0</span><span class="unit" id="resultUnit">mi</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="hint">Result updates automatically as you type.</p>
+
+      </div>
+
+      <!-- Landscape illustration: rolling hills + treeline -->
+      <svg class="landscape" viewBox="0 0 480 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- back hill -->
+        <path d="M0,70 C80,40 160,90 240,60 C320,35 400,80 480,55 L480,150 L0,150 Z" fill="#a9d6a5"/>
+        <!-- mid hill -->
+        <path d="M0,95 C70,70 150,110 240,85 C330,60 400,105 480,85 L480,150 L0,150 Z" fill="#7fc27f"/>
+        <!-- front hill / grass -->
+        <path d="M0,120 C90,100 180,130 260,110 C350,90 420,125 480,110 L480,150 L0,150 Z" fill="#4f9d5a"/>
+        <!-- trees along the treeline -->
+        <g fill="#2e7a45">
+          <circle cx="40" cy="100" r="16"/>
+          <circle cx="60" cy="108" r="20"/>
+          <circle cx="85" cy="100" r="15"/>
+          <circle cx="330" cy="95" r="17"/>
+          <circle cx="355" cy="104" r="21"/>
+          <circle cx="380" cy="96" r="15"/>
+          <circle cx="420" cy="102" r="14"/>
+        </g>
+        <g fill="#256339">
+          <circle cx="50" cy="112" r="13"/>
+          <circle cx="345" cy="112" r="14"/>
+          <circle cx="400" cy="108" r="12"/>
+        </g>
+      </svg>
+
+    </div>
+
+    <footer>Uses the standard conversion: 1 mile = 1.60934 kilometers.</footer>
+  </div>
+
+<script>
+  // ---- Constants -------------------------------------------------
+  // This is the one fixed number the whole app depends on.
+  const KM_PER_MILE = 1.60934;
+
+  // ---- Grab references to the HTML elements we need to read/update ----
+  const inputEl = document.getElementById('inputValue');
+  const kmToMiRadio = document.getElementById('kmToMi');
+  const miToKmRadio = document.getElementById('miToKm');
+  const resultValueEl = document.getElementById('resultValue');
+  const resultUnitEl = document.getElementById('resultUnit');
+  const resultLabelEl = document.getElementById('resultLabel');
+
+  // ---- Core conversion logic --------------------------------------
+  function convert() {
+    const rawValue = parseFloat(inputEl.value);
+
+    // If the box is empty or not a valid number, show 0 instead of erroring.
+    const value = isNaN(rawValue) ? 0 : rawValue;
+
+    let outputValue;
+    let outputUnit;
+    let inputLabel;
+
+    if (kmToMiRadio.checked) {
+      // kilometers -> miles: divide by km-per-mile
+      outputValue = value / KM_PER_MILE;
+      outputUnit = 'mi';
+      inputLabel = 'Result (miles)';
+    } else {
+      // miles -> kilometers: multiply by km-per-mile
+      outputValue = value * KM_PER_MILE;
+      outputUnit = 'km';
+      inputLabel = 'Result (kilometers)';
+    }
+
+    // Round to 4 decimal places, then trim trailing zeros for a clean look.
+    const rounded = parseFloat(outputValue.toFixed(4));
+
+    resultValueEl.textContent = rounded;
+    resultUnitEl.textContent = outputUnit;
+    resultLabelEl.textContent = inputLabel;
+  }
+
+  // ---- Wire up events: recalculate whenever the input or direction changes ----
+  inputEl.addEventListener('input', convert);
+  kmToMiRadio.addEventListener('change', convert);
+  miToKmRadio.addEventListener('change', convert);
+
+  // Run once on page load so the result panel isn't blank/stale.
+  convert();
+</script>
+
+</body>
+</html>
